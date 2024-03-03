@@ -34,7 +34,7 @@ end
 function GUI_AdvStatus(open)
 	if guiOpen then
 		local show = false
-		open, show = ImGui.Begin("SimpleAdventureStatusTracking", open, bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoSavedSettings))
+		open, show = ImGui.Begin("SimpleAdventureStatusTracking", open, bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize))
 		if not show then
 			ImGui.End()
 			return open
