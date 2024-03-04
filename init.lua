@@ -32,6 +32,7 @@ local function checkAdv()
 end
 --GUI
 function GUI_AdvStatus(open)
+	if mq.TLO.Me.Zoning() then return end
 	if guiOpen then
 		local show = false
 		open, show = ImGui.Begin("SimpleAdventureStatusTracking", open, bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize))
@@ -78,8 +79,10 @@ end
 
 local function loop()
 	while true do
+		if mq.TLO.Me.Zoning() then mq.delay('5s') end
 		if checkAdv() ~= 'No Adventure Started' then
 			guiOpen = true
+			if not AdvWIN.Open() and eqWinOpen then eqWinOpen = false end -- if we opened through GUI and closed in game reset flag.
 			-- if ingame window is open and we didn't set the flag close it on all characters. we most likely zoned or just accepted the quest.
 			if not eqWinOpen and AdvWIN.Open() then mq.cmdf('/noparse %s/lua parse mq.TLO.Window("AdventureRequestWnd").DoClose()',groupCmd) end
 		else
