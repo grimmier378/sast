@@ -18,6 +18,7 @@ local AdvWIN = mq.TLO.Window('AdventureRequestWnd')
 local guiOpen = false
 local eqWinOpen = false
 local groupCmd = '/dgae '
+local mode = 'DanNet'
 --Helpers
 local function checkAdv()
 	-- check for active adventure timers.Either time to enter dungeon or time to complete.
@@ -71,9 +72,26 @@ function GUI_AdvStatus(open)
 	end
 end
 
+local arg = {...}
+if arg[1] and arg[1] == 'solo' then mode = 'Solo' end
+if arg[1] and arg[1] == 'dannet' then mode = 'DanNet' end
+if arg[1] and arg[1] == 'eqbc' then mode = 'EQBC' end
+
 local function startup()
 	--check for MQ2EQBC plugin
-	if mq.TLO.Plugin('mq2eqbc').IsLoaded() then groupCmd = '/bcaa /' end
+	if mode == 'EQBC' then
+		if not mq.TLO.Plugin('mq2eqbc').IsLoaded() then
+			print('EQBC Not Loaded... Loading EQBC...')
+			mq.cmd('/plugin eqbc')
+		end
+		groupCmd = '/bcaa /'
+	elseif mode == 'DanNet' then
+		if not mq.TLO.Plugin('mq2dannet').IsLoaded() then
+			print('DanNet Not Loaded... Loading DanNet...')
+			mq.cmd('/plugin dannet')
+		end
+		groupCmd = '/dgae '
+	end
 	mq.imgui.init('Adventure Status', GUI_AdvStatus)
 end
 
@@ -84,7 +102,13 @@ local function loop()
 			guiOpen = true
 			if not AdvWIN.Open() and eqWinOpen then eqWinOpen = false end -- if we opened through GUI and closed in game reset flag.
 			-- if ingame window is open and we didn't set the flag close it on all characters. we most likely zoned or just accepted the quest.
-			if not eqWinOpen and AdvWIN.Open() then mq.cmdf('/noparse %s/lua parse mq.TLO.Window("AdventureRequestWnd").DoClose()',groupCmd) end
+			if not eqWinOpen and AdvWIN.Open() then
+				if mode == 'Solo' then
+					AdvWIN.DoClose()
+				else
+					mq.cmdf('/noparse %s/lua parse mq.TLO.Window("AdventureRequestWnd").DoClose()',groupCmd)
+				end
+			end
 		else
 			guiOpen = false
 		end
