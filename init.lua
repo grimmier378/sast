@@ -97,6 +97,7 @@ end
 
 local function loop()
 	while true do
+		if mq.TLO.Window('CharacterListWnd').Open() then return false end
 		if mq.TLO.Me.Zoning() then mq.delay('5s') end
 		if checkAdv() ~= 'No Adventure Started' then
 			guiOpen = true
