@@ -38,8 +38,9 @@ local function checkAdv()
 		return tostring('No Adventure Started')
 	end
 end
+
 local function checkExp()
-	if ExpWIN.Child('DZ_CurrentDZValue').Text() ~= 'NULL' then
+	if ExpWIN.Child('DZ_CurrentDZValue').Text() ~= '' then
 		exp = true
 		return string.format(ExpWIN.Child('DZ_CurrentDZValue').Text())
 	else
