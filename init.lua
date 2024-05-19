@@ -73,7 +73,8 @@ function GUI_AdvStatus(open)
 			ImGui.SameLine()
 			ImGui.Text( AdvWIN.Child('AdvRqst_ProgressTextLabel').Text() or 'None')
 			ImGui.SameLine(220)
-			ImGui.Text(Icons.MD_HELP_OUTLINE)
+			local iconHa = eqWinAdvOpen and Icons.MD_HELP or Icons.MD_HELP_OUTLINE
+			ImGui.Text(iconHa)
 			if ImGui.IsItemHovered() then
 				if ImGui.IsMouseReleased(0) then
 					eqWinAdvOpen = AdvWIN.Open()
@@ -110,7 +111,8 @@ function GUI_AdvStatus(open)
 			ImGui.PushStyleColor(ImGuiCol.Separator,ImVec4(0.00, 0.833, 0.751, 1.000))
 			ImGui.Text("Expedition Status:")
 			ImGui.SameLine(220)
-			ImGui.Text(Icons.MD_HELP_OUTLINE)
+			local iconH = eqWinExpOpen and Icons.MD_HELP or Icons.MD_HELP_OUTLINE
+			ImGui.Text(iconH)
 			if ImGui.IsItemHovered() then
 				if ImGui.IsMouseReleased(0) then
 					eqWinExpOpen = ExpWIN.Open()
@@ -181,17 +183,15 @@ local function loop()
 		local expActive = checkExp() ~= 'No Expedition Started'
 		if advActive or expActive then
 			guiOpen = true
-			if not AdvWIN.Open() and eqWinAdvOpen and advActive then eqWinAdvOpen = false end -- if we opened through GUI and closed in game reset flag.
-			if not ExpWIN.Open() and eqWinExpOpen and expActive then eqWinExpOpen = false end
 			-- if ingame window is open and we didn't set the flag close it on all characters. we most likely zoned or just accepted the quest.
-			if not eqWinAdvOpen and AdvWIN.Open() then
+			if not eqWinAdvOpen and AdvWIN.Open() and advActive then
 				if mode == 'Solo' then
 					AdvWIN.DoClose()
 				else
 					mq.cmdf('/noparse %s/lua parse mq.TLO.Window("AdventureRequestWnd").DoClose()',groupCmd)
 				end
 			end
-			if not eqWinExpOpen and ExpWIN.Open() then
+			if not eqWinExpOpen and ExpWIN.Open() and expActive then
 				if mode == 'Solo' then
 					ExpWIN.DoClose()
 				else
