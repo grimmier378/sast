@@ -21,8 +21,8 @@ local guiOpen = false
 local eqWinAdvOpen, eqWinExpOpen = false, false
 local groupCmd = '/dgae '
 local mode = 'DanNet'
-local winFlags = bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize)
-local locked = false
+local winFlags = bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoFocusOnAppearing)
+local locked, showAdv, forcedOpen, refreshStats = false, false, false, false
 --Helpers
 local function checkAdv()
 	-- check for active adventure timers.Either time to enter dungeon or time to complete.
@@ -53,7 +53,7 @@ end
 --GUI
 function GUI_AdvStatus(open)
 	if mq.TLO.Me.Zoning() then return end
-	if guiOpen then
+	if guiOpen or forcedOpen then
 		if locked then
 			winFlags = bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize,ImGuiWindowFlags.NoMove)
 		else
@@ -66,12 +66,21 @@ function GUI_AdvStatus(open)
 			return open
 		end
 		local iconLocked = locked and Icons.FA_LOCK or Icons.FA_UNLOCK
-		if adv then
+		if adv or forcedOpen then
 			ImGui.PushStyleColor(ImGuiCol.Text, ImVec4( 1.00, 0.454, 0.000, 1.000))
 			ImGui.PushStyleColor(ImGuiCol.Separator,ImVec4(1.00, 0.454, 0.000, 1.000))
 			ImGui.Text("Adventure Status: \t")
 			ImGui.SameLine()
 			ImGui.Text( AdvWIN.Child('AdvRqst_ProgressTextLabel').Text() or 'None')
+			ImGui.SameLine(200)
+			ImGui.Text(Icons.MD_MORE_HORIZ)
+			if ImGui.IsItemHovered() then
+				ImGui.SetTooltip('Click to Show More Information')
+				if ImGui.IsMouseReleased(0) then
+					if forcedOpen then forcedOpen = false end
+					showAdv = not showAdv
+				end
+			end
 			ImGui.SameLine(220)
 			local iconHa = eqWinAdvOpen and Icons.MD_HELP or Icons.MD_HELP_OUTLINE
 			ImGui.Text(iconHa)
@@ -145,9 +154,57 @@ function GUI_AdvStatus(open)
 			ImGui.Text(checkExp())
 			ImGui.PopStyleColor(2)
 		end
+		if showAdv then
+			ImGui.PushStyleColor(ImGuiCol.Text, ImVec4( 1.00, 0.454, 0.000, 1.000))
+			ImGui.PushStyleColor(ImGuiCol.Separator,ImVec4(1.00, 0.454, 0.000, 1.000))
+			ImGui.SeparatorText('Adventure Stats')
+
+			if ImGui.BeginTable('Adv Info##SAST_Info',4, bit32.bor(ImGuiTableFlags.Resizable), ImVec2(-1, -1)) then
+				ImGui.TableSetupColumn('Theme',ImGuiTableColumnFlags.WidthFixed, 90)
+				ImGui.TableSetupColumn('Success',ImGuiTableColumnFlags.WidthFixed, 60)
+				ImGui.TableSetupColumn('Fail',ImGuiTableColumnFlags.WidthFixed, 35)
+				ImGui.TableSetupColumn('Points',ImGuiTableColumnFlags.WidthFixed, 45)
+				ImGui.TableHeadersRow()
+				for i = 1, 5 do
+					local name = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i)() or "Refresh Me"
+					local sucComp = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i,3)() or 'Refresh Me'
+					local failComp = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i,4)() or 'Refresh Me'
+					local points = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i,7)() or 'Refresh Me'
+					ImGui.TableNextRow()
+					ImGui.TableSetColumnIndex(0)
+					if name == 'Refresh Me' then
+						if ImGui.Button('Refresh') then
+							mq.TLO.Window('AdventureRequestWnd/AdvRqst_ViewStatsButton').LeftMouseUp()
+							refreshStats = true
+						end
+						break
+					end
+					ImGui.Text(name)
+					ImGui.TableSetColumnIndex(1)
+					ImGui.Text(sucComp)
+					ImGui.TableSetColumnIndex(2)
+					ImGui.Text(failComp)
+					ImGui.TableSetColumnIndex(3)
+					ImGui.Text(points)
+				end
+				ImGui.EndTable()
+			end
+
+			ImGui.PopStyleColor(2)
+		end
+
 		ImGui.End()
 
 		return open
+	end
+end
+
+local function doBind(...)
+	local args = {...}
+	if args[1] == 'stats' then
+		forcedOpen = not forcedOpen
+		-- print('Opening Stats: ',forcedOpen)
+		if forcedOpen then showAdv = true end
 	end
 end
 
@@ -172,11 +229,18 @@ local function startup()
 		groupCmd = '/dgae '
 	end
 	mq.imgui.init('Adventure Status', GUI_AdvStatus)
+	mq.bind("/sast", doBind)
+	print('\agSimple Adventure Status Tracking\ax\ay Loaded...\ax')
+	print('Use \ay/sast stats\ax to toggle Adventure Stats')
 end
 
 local function loop()
 	while true do
-
+		if refreshStats then
+			mq.delay(3000, function() return (mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(1)() or 0) ~= 0 end)
+			mq.TLO.Window('AdventureStatsWnd').DoClose()
+			refreshStats = false
+		end
 		if mq.TLO.Window('CharacterListWnd').Open() then return false end
 		if mq.TLO.Me.Zoning() then mq.delay('5s') end
 		local advActive = checkAdv() ~= 'No Adventure Started'
@@ -201,7 +265,7 @@ local function loop()
 		else
 			guiOpen = false
 		end
-		mq.delay('5s')
+		mq.delay(1000)
 	end
 end
 startup()
