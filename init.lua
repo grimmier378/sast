@@ -207,6 +207,22 @@ local function doBind(...)
 		forcedOpen = not forcedOpen
 		-- print('Opening Stats: ',forcedOpen)
 		if forcedOpen then showAdv = true end
+	elseif args[1] == 'exped' then
+		if not eqWinExpOpen then
+			ExpWIN.DoOpen()
+			eqWinExpOpen = true
+		else
+			ExpWIN.DoClose()
+			eqWinExpOpen = false
+		end
+	elseif args[1] == 'adv' then
+		if not eqWinAdvOpen then
+			AdvWIN.DoOpen()
+			eqWinAdvOpen = true
+		else
+			AdvWIN.DoClose()
+			eqWinAdvOpen = false
+		end
 	end
 end
 
@@ -257,6 +273,8 @@ local function startup()
 	printf('Starting SAST \aoMode: \at%s \aodoDelay: \at%s \aoDelayTime: \at%ss',mode, doDelay, dTime)
 	print('\agSimple Adventure Status Tracking\ax\ay Loaded...\ax')
 	print('Use: \ay/sast stats\ax to toggle Adventure Stats')
+	print('Use: \ay/sast adv\ax to toggle Adventure Window')
+	print('Use: \ay/sast exped\ax to toggle Expedition Window')
 end
 
 local function loop()
