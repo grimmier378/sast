@@ -21,6 +21,8 @@ local guiOpen = false
 local eqWinAdvOpen, eqWinExpOpen = false, false
 local groupCmd = '/dgae '
 local mode = 'DanNet'
+local doDelay = false
+local delayTime
 local winFlags = bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoFocusOnAppearing)
 local locked, showAdv, forcedOpen, refreshStats = false, false, false, false
 --Helpers
@@ -209,9 +211,30 @@ local function doBind(...)
 end
 
 local arg = {...}
-if arg[1] and arg[1] == 'solo' then mode = 'Solo' end
-if arg[1] and arg[1] == 'dannet' then mode = 'DanNet' end
-if arg[1] and arg[1] == 'eqbc' then mode = 'EQBC' end
+if #arg > 0 then
+	if arg[1] ~= nil then
+		if arg[1] and arg[1] == 'solo' then mode = 'Solo' end
+		if arg[1] and arg[1] == 'dannet' then mode = 'DanNet' end
+		if arg[1] and arg[1] == 'eqbc' then mode = 'EQBC' end
+	end
+	if #arg == 3 then
+		if arg[2] == 'delay' then
+			if tonumber(arg[3]) then
+				doDelay = true
+				delayTime = tonumber(arg[3])
+				delayTime = delayTime * 1000
+			else
+				print('Invalid Delay Time')
+			end
+		else
+			print('Invalid Command')
+		end
+	end
+	print('Simple Adventure Status Tracking')
+	print('Usage: /lua run sast [mode]')
+	print('Usage: /lua run sast [mode] delay [time] to add a delay to closing the window.')
+	print('Modes: solo, dannet, eqbc')
+end
 
 local function startup()
 	--check for MQ2EQBC plugin
@@ -230,15 +253,18 @@ local function startup()
 	end
 	mq.imgui.init('Adventure Status', GUI_AdvStatus)
 	mq.bind("/sast", doBind)
+	printf('Starting SAST \aoMode: \at%s \aodoDelay: \at%s \aoDelayTime: \at%ss',mode, doDelay, (delayTime/1000))
 	print('\agSimple Adventure Status Tracking\ax\ay Loaded...\ax')
-	print('Use \ay/sast stats\ax to toggle Adventure Stats')
+	print('Use: \ay/sast stats\ax to toggle Adventure Stats')
 end
 
 local function loop()
 	while true do
 		if refreshStats then
 			mq.delay(3000, function() return (mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(1)() or 0) ~= 0 end)
-			mq.TLO.Window('AdventureStatsWnd').DoClose()
+			mq.delay(200) -- extra pading after window opens so we can pull the data
+			mq.TLO.Window('AdventureStatsWnd/AdvStats_DoneButton').LeftMouseUp()
+			-- mq.TLO.Window('AdventureStatsWnd').DoClose()
 			refreshStats = false
 		end
 		if mq.TLO.Window('CharacterListWnd').Open() then return false end
@@ -249,6 +275,7 @@ local function loop()
 			guiOpen = true
 			-- if ingame window is open and we didn't set the flag close it on all characters. we most likely zoned or just accepted the quest.
 			if not eqWinAdvOpen and AdvWIN.Open() and advActive then
+				if doDelay and delayTime ~= nil then mq.delay(delayTime) end
 				if mode == 'Solo' then
 					AdvWIN.DoClose()
 				else
@@ -256,6 +283,7 @@ local function loop()
 				end
 			end
 			if not eqWinExpOpen and ExpWIN.Open() and expActive then
+				if doDelay and delayTime ~= nil then mq.delay(delayTime) end
 				if mode == 'Solo' then
 					ExpWIN.DoClose()
 				else
