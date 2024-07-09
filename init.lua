@@ -253,7 +253,8 @@ local function startup()
 	end
 	mq.imgui.init('Adventure Status', GUI_AdvStatus)
 	mq.bind("/sast", doBind)
-	printf('Starting SAST \aoMode: \at%s \aodoDelay: \at%s \aoDelayTime: \at%ss',mode, doDelay, (delayTime/1000))
+	local dTime = delayTime ~= nil  and delayTime / 1000 or 'None'
+	printf('Starting SAST \aoMode: \at%s \aodoDelay: \at%s \aoDelayTime: \at%ss',mode, doDelay, dTime)
 	print('\agSimple Adventure Status Tracking\ax\ay Loaded...\ax')
 	print('Use: \ay/sast stats\ax to toggle Adventure Stats')
 end
