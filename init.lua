@@ -23,6 +23,7 @@ local groupCmd = '/dgae '
 local mode = 'DanNet'
 local doDelay = false
 local delayTime
+local currZone, lastZone
 local winFlags = bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoFocusOnAppearing)
 local locked, showAdv, forcedOpen, refreshStats = false, false, false, false
 --Helpers
@@ -54,7 +55,7 @@ end
 
 --GUI
 function GUI_AdvStatus(open)
-	if mq.TLO.Me.Zoning() then return end
+	if currZone ~= lastZone then return end
 	if guiOpen or forcedOpen then
 		if locked then
 			winFlags = bit32.bor(ImGuiWindowFlags.NoCollapse,ImGuiWindowFlags.NoTitleBar,ImGuiWindowFlags.AlwaysAutoResize,ImGuiWindowFlags.NoMove)
@@ -67,6 +68,7 @@ function GUI_AdvStatus(open)
 			ImGui.End()
 			return open
 		end
+		local needRefresh = false
 		local iconLocked = locked and Icons.FA_LOCK or Icons.FA_UNLOCK
 		if adv or forcedOpen then
 			ImGui.PushStyleColor(ImGuiCol.Text, ImVec4( 1.00, 0.454, 0.000, 1.000))
@@ -160,21 +162,22 @@ function GUI_AdvStatus(open)
 			ImGui.PushStyleColor(ImGuiCol.Text, ImVec4( 1.00, 0.454, 0.000, 1.000))
 			ImGui.PushStyleColor(ImGuiCol.Separator,ImVec4(1.00, 0.454, 0.000, 1.000))
 			ImGui.SeparatorText('Adventure Stats')
-
+			
 			if ImGui.BeginTable('Adv Info##SAST_Info',4, bit32.bor(ImGuiTableFlags.Resizable), ImVec2(-1, -1)) then
 				ImGui.TableSetupColumn('Theme',ImGuiTableColumnFlags.WidthFixed, 90)
 				ImGui.TableSetupColumn('Success',ImGuiTableColumnFlags.WidthFixed, 60)
 				ImGui.TableSetupColumn('Fail',ImGuiTableColumnFlags.WidthFixed, 35)
 				ImGui.TableSetupColumn('Points',ImGuiTableColumnFlags.WidthFixed, 45)
 				ImGui.TableHeadersRow()
+
 				for i = 1, 5 do
 					local name = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i)() or "Refresh Me"
 					local sucComp = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i,3)() or 'Refresh Me'
 					local failComp = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i,4)() or 'Refresh Me'
 					local points = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(i,7)() or 'Refresh Me'
-					ImGui.TableNextRow()
-					ImGui.TableSetColumnIndex(0)
+					ImGui.TableNextColumn()
 					if name == 'Refresh Me' then
+						needRefresh = true
 						if ImGui.Button('Refresh') then
 							mq.TLO.Window('AdventureRequestWnd/AdvRqst_ViewStatsButton').LeftMouseUp()
 							refreshStats = true
@@ -182,14 +185,36 @@ function GUI_AdvStatus(open)
 						break
 					end
 					ImGui.Text(name)
-					ImGui.TableSetColumnIndex(1)
+					ImGui.TableNextColumn()
 					ImGui.Text(sucComp)
-					ImGui.TableSetColumnIndex(2)
+					ImGui.TableNextColumn()
 					ImGui.Text(failComp)
-					ImGui.TableSetColumnIndex(3)
+					ImGui.TableNextColumn()
 					ImGui.Text(points)
 				end
+				if not needRefresh then
+					local totalSuc = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(7,3)() or 'Refresh Me'
+					local totalFail = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(7,4)() or 'Refresh Me'
+					local totalPoints = mq.TLO.Window("AdventureStatsWnd/AdvStats_ThemeList").List(7,7)() or 'Refresh Me'
+					ImGui.TableNextColumn()
+					ImGui.Separator()
+					ImGui.TableNextColumn()
+					ImGui.Separator()
+					ImGui.TableNextColumn()
+					ImGui.Separator()
+					ImGui.TableNextColumn()
+					ImGui.Separator()
+					ImGui.TableNextColumn()
+					ImGui.Text("Totals:")
+					ImGui.TableNextColumn()
+					ImGui.Text(totalSuc)
+					ImGui.TableNextColumn()
+					ImGui.Text(totalFail)
+					ImGui.TableNextColumn()
+					ImGui.Text(totalPoints)
+				end
 				ImGui.EndTable()
+
 			end
 
 			ImGui.PopStyleColor(2)
@@ -275,6 +300,8 @@ local function startup()
 	print('Use: \ay/sast stats\ax to toggle Adventure Stats')
 	print('Use: \ay/sast adv\ax to toggle Adventure Window')
 	print('Use: \ay/sast exped\ax to toggle Expedition Window')
+	currZone = mq.TLO.Zone.ID()
+	lastZone = currZone
 end
 
 local function loop()
@@ -286,8 +313,9 @@ local function loop()
 			-- mq.TLO.Window('AdventureStatsWnd').DoClose()
 			refreshStats = false
 		end
+		currZone = mq.TLO.Zone.ID()
 		if mq.TLO.Window('CharacterListWnd').Open() then return false end
-		if mq.TLO.Me.Zoning() then mq.delay('5s') end
+		if currZone ~= lastZone then lastZone = currZone mq.delay('1s') end
 		local advActive = checkAdv() ~= 'No Adventure Started'
 		local expActive = checkExp() ~= 'No Expedition Started'
 		if advActive or expActive then
